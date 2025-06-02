@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login System</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #login-form, #welcome-message {
+      background-color: #111;
+      border: 2px solid #0f0;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #0f0;
+      width: 300px;
+      text-align: center;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
+      border-radius: 5px;
+    }
+
+    input::placeholder {
+      color: #0f0;
+      opacity: 0.6;
+    }
+
+    button {
+      background-color: #0f0;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #1f1;
+    }
+
+    h1, p {
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="login-form">
+    <h1>Login</h1>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="welcome-message" style="display:none;"></div>
+
+  <script>
+    let currentUsername = "";
+
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      if (username === "admin" && password === "1234") {
+        currentUsername = username;
+        const now = new Date();
+        const timeString = now.toLocaleString();
+
+        // Show notification
+        if (Notification.permission === "granted") {
+          new Notification("Login Successful", {
+            body: `User ${username} logged in at ${timeString}`
+          });
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              new Notification("Login Successful", {
+                body: `User ${username} logged in at ${timeString}`
+              });
+            }
+          });
+        }
+
+        // Show welcome
+        document.getElementById("login-form").style.display = "none";
+        const welcomeDiv = document.getElementById("welcome-message");
+        welcomeDiv.innerHTML = `
+          <h1>Welcome, ${username}!</h1>
+          <p>You logged in at: ${timeString}</p>
+          <button onclick="logout()">Logout</button>
+        `;
+        welcomeDiv.style.display = "block";
+
+        // Screenshot
+        setTimeout(() => {
+          takeScreenshot(`login-${username}`);
+        }, 500);
+      } else {
+        alert("Invalid credentials");
+      }
+    }
+
+    function logout() {
+      const now = new Date();
+      const timeString = now.toLocaleString();
+
+      const welcomeDiv = document.getElementById("welcome-message");
+      welcomeDiv.innerHTML = `
+        <h1>Goodbye, ${currentUsername}!</h1>
+        <p>You logged out at: ${timeString}</p>
+        <button onclick="closeToLogin()">Close</button>
+      `;
+
+      // Screenshot
+      setTimeout(() => {
+        takeScreenshot(`logout-${currentUsername}`);
+      }, 500);
+    }
+
+    function closeToLogin() {
+      document.getElementById("welcome-message").style.display = "none";
+      document.getElementById("login-form").style.display = "block";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
+    function takeScreenshot(filenamePrefix) {
+      const welcomeDiv = document.getElementById("welcome-message");
+      html2canvas(welcomeDiv).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `${filenamePrefix}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
