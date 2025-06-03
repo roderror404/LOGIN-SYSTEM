@@ -18,7 +18,7 @@
       height: 100vh;
     }
 
-    #login-form, #welcome-message {
+    .card {
       background-color: #111;
       border: 2px solid #0f0;
       padding: 30px;
@@ -65,14 +65,23 @@
   </style>
 </head>
 <body>
-  <div id="login-form">
-    <h1>Login</h1>
+  <!-- Login Screen -->
+  <div id="login-form" class="card">
+    <h1>Time in Check</h1>
     <input type="text" id="username" placeholder="Username" />
     <input type="password" id="password" placeholder="Password" />
     <button onclick="login()">Login</button>
   </div>
 
-  <div id="welcome-message" style="display:none;"></div>
+  <!-- Welcome Screen -->
+  <div id="welcome-message" class="card" style="display:none;"></div>
+
+  <!-- Error Screen -->
+  <div id="error-message" class="card" style="display:none;">
+    <h1>Access Denied</h1>
+    <p>Invalid username or password.</p>
+    <button onclick="returnToLogin()">Return to Login</button>
+  </div>
 
   <script>
     let currentUsername = "";
@@ -86,7 +95,7 @@
         const now = new Date();
         const timeString = now.toLocaleString();
 
-        // Show notification
+        // Notification
         if (Notification.permission === "granted") {
           new Notification("Login Successful", {
             body: `User ${username} logged in at ${timeString}`
@@ -101,7 +110,7 @@
           });
         }
 
-        // Show welcome
+        // Show welcome message
         document.getElementById("login-form").style.display = "none";
         const welcomeDiv = document.getElementById("welcome-message");
         welcomeDiv.innerHTML = `
@@ -111,12 +120,13 @@
         `;
         welcomeDiv.style.display = "block";
 
-        // Screenshot
         setTimeout(() => {
           takeScreenshot(`login-${username}`);
         }, 500);
       } else {
-        alert("Invalid credentials");
+        // Show error page
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("error-message").style.display = "block";
       }
     }
 
@@ -131,7 +141,6 @@
         <button onclick="closeToLogin()">Close</button>
       `;
 
-      // Screenshot
       setTimeout(() => {
         takeScreenshot(`logout-${currentUsername}`);
       }, 500);
@@ -144,9 +153,16 @@
       document.getElementById("password").value = "";
     }
 
+    function returnToLogin() {
+      document.getElementById("error-message").style.display = "none";
+      document.getElementById("login-form").style.display = "block";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
     function takeScreenshot(filenamePrefix) {
-      const welcomeDiv = document.getElementById("welcome-message");
-      html2canvas(welcomeDiv).then(canvas => {
+      const targetDiv = document.getElementById("welcome-message");
+      html2canvas(targetDiv).then(canvas => {
         const link = document.createElement("a");
         link.download = `${filenamePrefix}.png`;
         link.href = canvas.toDataURL();
