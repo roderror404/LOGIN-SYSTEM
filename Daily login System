@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login System</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background-color: #111;
+      border: 2px solid #0f0;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #0f0;
+      width: 300px;
+      text-align: center;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
+      border-radius: 5px;
+    }
+
+    input::placeholder {
+      color: #0f0;
+      opacity: 0.6;
+    }
+
+    button, a.button-link {
+      background-color: #0f0;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    button:hover, a.button-link:hover {
+      background-color: #1f1;
+    }
+
+    h1, p {
+      color: #0f0;
+    }
+
+    #screenshot-area {
+      background-color: #000;
+      padding: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-form" class="card">
+    <h1>Daily Login</h1>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- Welcome Screen -->
+  <div id="welcome-message" class="card hidden"></div>
+
+  <!-- Break Screen -->
+  <div id="break-message" class="card hidden"></div>
+
+  <!-- Error Screen -->
+  <div id="error-message" class="card hidden">
+    <h1>Access Denied</h1>
+    <p>Invalid username or password.</p>
+    <button onclick="returnToLogin()">Return to Login</button>
+  </div>
+
+  <script>
+    const users = [
+      { username: "Jhonrod", password: "1234" },
+      { username: "Hazel", password: "pass123" },
+      { username: "Bob", password: "secure456" }
+    ];
+
+    let currentUsername = "";
+    let loginTime = "";
+    let breakStartTime = "";
+    let breakEndTime = "";
+    let dashboardTime = "";
+
+    const googleScriptUrl = "https://script.google.com/macros/s/YOUR_DEPLOYED_WEBAPP_ID/exec";
+
+    function sendEventToSheet(username, event, time) {
+      fetch(googleScriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({ username, event, time }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    function login() {
+      const inputUsername = document.getElementById("username").value.trim();
+      const inputPassword = document.getElementById("password").value;
+
+      const user = users.find(u => u.username === inputUsername && u.password === inputPassword);
+
+      if (user) {
+        currentUsername = user.username;
+        loginTime = new Date().toLocaleString();
+        breakStartTime = "";
+        breakEndTime = "";
+        dashboardTime = "";
+
+        sendEventToSheet(currentUsername, "login", loginTime);
+
+        document.getElementById("login-form").classList.add("hidden");
+        const welcomeDiv = document.getElementById("welcome-message");
+        welcomeDiv.innerHTML = `
+          <div id="screenshot-area">
+            <h1>Welcome, ${currentUsername}!</h1>
+            <p>You logged in at:<br>${loginTime}</p>
+          </div>
+          <button onclick="logout()">Logout</button>
+          <button onclick="takeBreak()">Take a Break</button>
+          <button onclick="recordDashboard()">Work Dashboard</button>
+        `;
+        welcomeDiv.classList.remove("hidden");
+
+        setTimeout(() => takeScreenshot(`login-${currentUsername}`), 500);
+      } else {
+        document.getElementById("login-form").classList.add("hidden");
+        document.getElementById("error-message").classList.remove("hidden");
+      }
+    }
+
+    function logout() {
+      const logoutTime = new Date().toLocaleString();
+      sendEventToSheet(currentUsername, "logout", logoutTime);
+
+      let summaryHTML = `
+        <div id="screenshot-area">
+          <h1>Have a Good Day, ${currentUsername}!</h1>
+          <p><strong>Login:</strong><br>${loginTime}</p>
+      `;
+
+      if (breakStartTime) summaryHTML += `<p><strong>Break Start:</strong><br>${breakStartTime}</p>`;
+      if (breakEndTime) summaryHTML += `<p><strong>Break End:</strong><br>${breakEndTime}</p>`;
+      if (dashboardTime) summaryHTML += `<p><strong>Dashboard Access:</strong><br>${dashboardTime}</p>`;
+
+      summaryHTML += `<p><strong>Logout:</strong><br>${logoutTime}</p></div>
+        <button onclick="takeScreenshotAndClose('logout-${currentUsername}')">Download & Close</button>`;
+
+      const welcomeDiv = document.getElementById("welcome-message");
+      welcomeDiv.innerHTML = summaryHTML;
+    }
+
+    function takeBreak() {
+      breakStartTime = new Date().toLocaleString();
+      document.getElementById("welcome-message").classList.add("hidden");
+      const breakDiv = document.getElementById("break-message");
+      breakDiv.innerHTML = `
+        <div>
+          <h1>Break Time</h1>
+          <p>${currentUsername} started break at:<br>${breakStartTime}</p>
+        </div>
+        <button onclick="returnFromBreak()">End Break</button>
+      `;
+      breakDiv.classList.remove("hidden");
+    }
+
+    function returnFromBreak() {
+      breakEndTime = new Date().toLocaleString();
+      document.getElementById("break-message").classList.add("hidden");
+
+      const welcomeDiv = document.getElementById("welcome-message");
+      welcomeDiv.innerHTML = `
+        <div id="screenshot-area">
+          <h1>Welcome Back, ${currentUsername}!</h1>
+          <p>You returned from break at:<br>${breakEndTime}</p>
+        </div>
+        <button onclick="logout()">Logout</button>
+        <button onclick="takeBreak()">Take a Break</button>
+        <button onclick="recordDashboard()">Work Dashboard</button>
+      `;
+      welcomeDiv.classList.remove("hidden");
+    }
+
+    function recordDashboard() {
+      dashboardTime = new Date().toLocaleString();
+      sendEventToSheet(currentUsername, "dashboard", dashboardTime);
+      window.open("https://ryzen.myavionte.com/app/#/dashboard/", "_blank");
+    }
+
+    function closeToLogin() {
+      document.getElementById("welcome-message").classList.add("hidden");
+      document.getElementById("login-form").classList.remove("hidden");
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
+    function returnToLogin() {
+      document.getElementById("error-message").classList.add("hidden");
+      document.getElementById("login-form").classList.remove("hidden");
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
+    function takeScreenshotAndClose(filenamePrefix) {
+      const target = document.getElementById("screenshot-area");
+      html2canvas(target, {
+        useCORS: true,
+        backgroundColor: "#000"
+      }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `${filenamePrefix}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        closeToLogin();
+      });
+    }
+
+    function takeScreenshot(filenamePrefix) {
+      const target = document.getElementById("screenshot-area");
+      html2canvas(target, {
+        useCORS: true,
+        backgroundColor: "#000"
+      }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `${filenamePrefix}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+
+    document.getElementById("username").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") login();
+    });
+    document.getElementById("password").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") login();
+    });
+  </script>
+</body>
+</html>
