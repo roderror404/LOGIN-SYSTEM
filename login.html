@@ -48,7 +48,7 @@
       color: #000;
       border: none;
       padding: 10px 20px;
-      margin-top: 10px;
+      margin: 10px 5px;
       cursor: pointer;
       border-radius: 5px;
       font-weight: bold;
@@ -62,22 +62,34 @@
     h1, p {
       color: #0f0;
     }
+
+    #screenshot-area {
+      background-color: #000;
+      padding: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <!-- Login Screen -->
   <div id="login-form" class="card">
-    <h1>Time in Check</h1>
+    <h1>Daily Login</h1>
     <input type="text" id="username" placeholder="Username" />
     <input type="password" id="password" placeholder="Password" />
     <button onclick="login()">Login</button>
   </div>
 
   <!-- Welcome Screen -->
-  <div id="welcome-message" class="card" style="display:none;"></div>
+  <div id="welcome-message" class="card hidden"></div>
+
+  <!-- Break Screen -->
+  <div id="break-message" class="card hidden"></div>
 
   <!-- Error Screen -->
-  <div id="error-message" class="card" style="display:none;">
+  <div id="error-message" class="card hidden">
     <h1>Access Denied</h1>
     <p>Invalid username or password.</p>
     <button onclick="returnToLogin()">Return to Login</button>
@@ -85,48 +97,37 @@
 
   <script>
     let currentUsername = "";
+    let breakStartTime = "";
 
     function login() {
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
-      if (username === "admin" && password === "1234") {
+      if (username === "Jhonrod" && password === "1234") {
         currentUsername = username;
         const now = new Date();
         const timeString = now.toLocaleString();
 
-        // Notification
-        if (Notification.permission === "granted") {
-          new Notification("Login Successful", {
-            body: `User ${username} logged in at ${timeString}`
-          });
-        } else if (Notification.permission !== "denied") {
-          Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-              new Notification("Login Successful", {
-                body: `User ${username} logged in at ${timeString}`
-              });
-            }
-          });
-        }
+        notify(`User ${username} logged in at ${timeString}`);
 
-        // Show welcome message
-        document.getElementById("login-form").style.display = "none";
+        document.getElementById("login-form").classList.add("hidden");
         const welcomeDiv = document.getElementById("welcome-message");
         welcomeDiv.innerHTML = `
-          <h1>Welcome, ${username}!</h1>
-          <p>You logged in at: ${timeString}</p>
+          <div id="screenshot-area">
+            <h1>Welcome, ${username}!</h1>
+            <p>You logged in at:<br>${timeString}</p>
+          </div>
           <button onclick="logout()">Logout</button>
+          <button onclick="takeBreak()">Take a Break</button>
         `;
-        welcomeDiv.style.display = "block";
+        welcomeDiv.classList.remove("hidden");
 
         setTimeout(() => {
           takeScreenshot(`login-${username}`);
         }, 500);
       } else {
-        // Show error page
-        document.getElementById("login-form").style.display = "none";
-        document.getElementById("error-message").style.display = "block";
+        document.getElementById("login-form").classList.add("hidden");
+        document.getElementById("error-message").classList.remove("hidden");
       }
     }
 
@@ -136,8 +137,10 @@
 
       const welcomeDiv = document.getElementById("welcome-message");
       welcomeDiv.innerHTML = `
-        <h1>Goodbye, ${currentUsername}!</h1>
-        <p>You logged out at: ${timeString}</p>
+        <div id="screenshot-area">
+          <h1>Have a Good Day, ${currentUsername}!</h1>
+          <p>You logged out at:<br>${timeString}</p>
+        </div>
         <button onclick="closeToLogin()">Close</button>
       `;
 
@@ -146,23 +149,90 @@
       }, 500);
     }
 
+    function takeBreak() {
+      const now = new Date();
+      breakStartTime = now.toLocaleString();
+
+      document.getElementById("welcome-message").classList.add("hidden");
+      const breakDiv = document.getElementById("break-message");
+      breakDiv.innerHTML = `
+        <div id="screenshot-area">
+          <h1>Break Time</h1>
+          <p>${currentUsername} started break at:<br>${breakStartTime}</p>
+        </div>
+        <button onclick="returnFromBreak()">End Break</button>
+      `;
+      breakDiv.classList.remove("hidden");
+    }
+
+    function returnFromBreak() {
+      const now = new Date();
+      const returnTime = now.toLocaleString();
+
+      const breakDiv = document.getElementById("break-message");
+      breakDiv.innerHTML = `
+        <div id="screenshot-area">
+          <h1>Break Ended</h1>
+          <p>${currentUsername} started break at:<br>${breakStartTime}</p>
+          <p>Returned at:<br>${returnTime}</p>
+        </div>
+        <button onclick="finishBreak()">Return</button> 
+      `;
+
+      setTimeout(() => {
+        takeScreenshot(`break-return-${currentUsername}`);
+      }, 500);
+    }
+
+    function finishBreak() {
+      document.getElementById("break-message").classList.add("hidden");
+      document.getElementById("welcome-message").classList.remove("hidden");
+
+      const now = new Date();
+      const timeString = now.toLocaleString();
+
+      document.getElementById("welcome-message").innerHTML = `
+        <div id="screenshot-area">
+          <h1>Welcome Back, ${currentUsername}!</h1>
+          <p>You returned from break at:<br>${timeString}</p>
+        </div>
+        <button onclick="logout()">Logout</button>
+        <button onclick="takeBreak()">Take a Break</button>
+      `;
+    }
+
     function closeToLogin() {
-      document.getElementById("welcome-message").style.display = "none";
-      document.getElementById("login-form").style.display = "block";
+      document.getElementById("welcome-message").classList.add("hidden");
+      document.getElementById("login-form").classList.remove("hidden");
       document.getElementById("username").value = "";
       document.getElementById("password").value = "";
     }
 
     function returnToLogin() {
-      document.getElementById("error-message").style.display = "none";
-      document.getElementById("login-form").style.display = "block";
+      document.getElementById("error-message").classList.add("hidden");
+      document.getElementById("login-form").classList.remove("hidden");
       document.getElementById("username").value = "";
       document.getElementById("password").value = "";
     }
 
+    function notify(message) {
+      if (Notification.permission === "granted") {
+        new Notification("Login System", { body: message });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification("Login System", { body: message });
+          }
+        });
+      }
+    }
+
     function takeScreenshot(filenamePrefix) {
-      const targetDiv = document.getElementById("welcome-message");
-      html2canvas(targetDiv).then(canvas => {
+      const target = document.getElementById("screenshot-area");
+      html2canvas(target, {
+        useCORS: true,
+        backgroundColor: "#000"
+      }).then(canvas => {
         const link = document.createElement("a");
         link.download = `${filenamePrefix}.png`;
         link.href = canvas.toDataURL();
